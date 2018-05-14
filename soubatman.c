@@ -12,6 +12,8 @@ typedef struct Node{
     bool folha;              //Diferencia nós folha de nós interiores
 } Node;
 
+char fileEntradaPath, fileSaidaPath;
+
 Node * criaNode(Node *no, int ordem){
 
     int i;                  //Contador de for
@@ -257,6 +259,15 @@ void destroi(Node *no){
 int main(){
 
 	char *fileEntrada, *fileSaida;
+
+	//Codigo para receber os parametros do terminal
+	/*fileEntradaPath = argv[1];
+	fileSaidaPath = argv[2];
+
+	fileEntrada = fopen("Entrada.txt", "r");
+    fileSaida = fopen("Saida.txt", "w");*/
+
+
 	fileEntrada = fopen("Entrada.txt", "r");
     fileSaida = fopen("Saida.txt", "w");
     int memoria, ordem, qtdChaves, i, chave, qtdInseridas, insertChaves;
