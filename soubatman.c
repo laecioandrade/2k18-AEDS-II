@@ -1,340 +1,407 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define MAX 4
+#define MIN 2
+//using namespace std;
 
+char *fileEntrada, *fileSaida;
 
-typedef enum {false, true} bool; //definindo tipo bool
-
-typedef struct Node{
-    int n_chaves;            //Número de chaves no nó
-    int *chaves;             //Array de chaves
-    struct Node **ptr_node;  //Array de ponteiros para nós filho
-    bool folha;              //Diferencia nós folha de nós interiores
-} Node;
-
-char fileEntradaPath, fileSaidaPath;
-
-Node * criaNode(Node *no, int ordem){
-
-    int i;                  //Contador de for
-
-    no = malloc(sizeof(Node));
-
-    no->folha = true;
-    no->n_chaves = 0;       //Inicializa sem chaves
-    no->chaves = (int*) malloc((ordem-1) * sizeof(int));  //Aloca dinamicamente as chaves e
-    for(i = 0; i < ordem - 1; i++){                       //inicializa elas com -1 (sem valor)
-        no->chaves[i] = -1;
-    }
-
-    no->ptr_node = (Node **) malloc(ordem * sizeof(struct Node *));  //Aloca dinamicamente os ponteiros e
-    for(i = 0; i < ordem; i++){                                      //inicializa eles com NULL
-        no->ptr_node[i] = NULL;
-    }
-
-    return no;
+typedef struct btreeNode btree;
+struct btreeNode {
+    int val[MAX + 1], count;
+    btree *link[MAX + 1];
+};
+ 
+btree *root;
+ 
+/* criando novo nó */
+btree * createNode(int val, btree *child) {
+    btree * newNode = malloc(sizeof(btree));
+    newNode->val[1] = val;
+    newNode->count = 1;
+    newNode->link[0] = root;
+    newNode->link[1] = child;
+    return newNode;
 }
-
-void insertionSort(int *array, int tamanho){
-    int i, j, item;
-
-    for(i = 1; i < tamanho; i++){
-        item = array[i];
-        j = i - 1;
-
-        while (j >= 0 && array[j] > item){
-            array[j + 1] = array[j];
-            j--;
-        }
-
-        array[j + 1] = item;
+ 
+/* Coloca o valor na posição apropriada */
+void addValToNode(int val, int pos, btree *node, btree *child) {
+    int j = node->count;
+    while (j > pos) {
+        node->val[j + 1] = node->val[j];
+        node->link[j + 1] = node->link[j];
+        j--;
     }
+    node->val[j + 1] = val;
+    node->link[j + 1] = child;
+    node->count++;
+    
 }
-
-void copiaNode(Node *sourc, Node *dest, int ordem, int m){
-    int i, j = 0;
-
-    for(i = m; i < ordem - 1; i++){
-        dest->chaves[j] = sourc->chaves[i];
-        dest->ptr_node[j + 1] = sourc->ptr_node[i + 1];
-        sourc->chaves[i] = -1;           //Verificar se precisa
-        sourc->ptr_node[i + 1] = NULL;   //Verificar se dá merda
-        dest->n_chaves++;
-        sourc->n_chaves--;
+ 
+/* dividir o nó */
+void splitNode(int val, int *pval, int pos, btree *node,btree *child, btree **newNode) {
+    int median, j;
+ 
+    if (pos > MIN)
+        median = MIN + 1;
+    else
+        median = MIN;
+ 
+    *newNode = malloc(sizeof(btree));
+    j = median + 1;
+    while (j <= MAX) {
+        (*newNode)->val[j - median] = node->val[j];
+        (*newNode)->link[j - median] = node->link[j];
         j++;
     }
-}
-
-int ordenaNode(Node *no, int chave){
-    int i = no->n_chaves;
-
-    while(i > 0 && no->chaves[i - 1] > chave){
-        no->chaves[i] = no->chaves[i - 1];
-        no->ptr_node[i + 1] = no->ptr_node[i];
-        i--;
+    node->count = median;
+    (*newNode)->count = MAX - median;
+ 
+    if (pos <= MIN) {
+        addValToNode(val, pos, node, child);
     }
-
-    no->chaves[i] = chave;
-    no->n_chaves++;
-
-    return i;
-}
-
-int posDescida(int *array, int pos, int chave){
-
-    while(pos > 0 && array[pos - 1] > chave){
-        pos--;
+    else {
+        addValToNode(val, pos - median, *newNode, child);
     }
-
-    return pos;
+    *pval = node->val[node->count];
+    (*newNode)->link[0] = node->link[node->count];
+    node->count--;
 }
-
-void divide(Node *no, int chave, Node *direita, Node *novo, int *chave_promovida, int ordem){
-
-    if(no->folha == false){ //Nó a ser dividido é folha
-        novo->folha = false;
+ 
+/* define o valor chave no nó */
+int setValueInNode(int val, int *pval,btree *node, btree **child) {
+ 
+    int pos;
+    if (!node) {
+        *pval = val;
+        *child = NULL;
+        return 1;
     }
-
-    int m, i, j, pos;
-
-    m = (int)(ordem - 1)/2;
-
-    j = 0;       //i para for, j para vetor do novo nó
-
-    if(chave < no->chaves[m]){
-        copiaNode(no, novo, ordem, m);
-        no->chaves[no->n_chaves] = chave;
-        no->n_chaves++;
-        insertionSort(no->chaves, no->n_chaves);
-        pos = posDescida(no->chaves, no->n_chaves, chave);
-        novo->ptr_node[0] = no->ptr_node[pos];
-        no->ptr_node[pos] = direita;
-
-    } else {
-        copiaNode(no, novo, ordem, m + 1);
-        novo->chaves[novo->n_chaves] = chave;
-        novo->n_chaves++;
-
-        insertionSort(novo->chaves, novo->n_chaves);
-        pos = posDescida(novo->chaves, novo->n_chaves, chave);
-        novo->ptr_node[0] = no->ptr_node[no->n_chaves];
-        novo->ptr_node[pos] = direita;
+ 
+    if (val < node->val[1]) {
+        pos = 0;
     }
-
-    *chave_promovida = no->chaves[(no->n_chaves) - 1];
-
-    no->chaves[(no->n_chaves) - 1] = -1;
-    no->n_chaves--;
-    printf("promo=%d\n", *chave_promovida);
-}
-
-bool buscaInsere(Node *atual, int chave, bool *promocao, int *chave_promovida, Node **novo, int ordem){
-
-    int i;      //Contador para for
-    bool jaExiste = false;      //Para saber se chave já existe no nó
-    for(i = 0; i < atual->n_chaves; i++){//Percorre nó para ver se chave já existe
-        if(chave == atual->chaves[i]){
-            jaExiste = true;
+    else {
+        for (pos = node->count;
+            (val < node->val[pos] && pos > 1); pos--);
+        if (val == node->val[pos]) {
+            
+			printf("Duplicatas nao permitidas\n");
+            return 0;
         }
     }
-
-    if(jaExiste){ //Chave já existe
-
-        return false;
-
-    } else {      //Chave não existe
-
-        if(atual->folha){   //Nó atual é folha
-
-            if(atual->n_chaves < ordem - 1){    //Nó não cheio
-
-                atual->chaves[(atual->n_chaves)] = chave;
-                atual->n_chaves++;
-                atual->ptr_node[(atual->n_chaves) + 1] = NULL;
-                *promocao = false;
-                insertionSort(atual->chaves, atual->n_chaves);
-
-            } else {                            //Nó cheio
-
-                divide(atual, chave, NULL, *novo, chave_promovida, ordem);
-                *promocao = true;
+    if (setValueInNode(val, pval, node->link[pos], child)) {
+        if (node->count < MAX) {
+            addValToNode(*pval, pos, node, *child);
+        }
+        else {
+            splitNode(*pval, pval, pos, node, *child, child);
+            return 1;
+        }
+    }
+    return 0;
+}
+ 
+/* inserir chave em B-Tree */
+void insertion(int val) {
+    int flag, i;
+    btree *child;
+ 
+    flag = setValueInNode(val, &i, root, &child);
+    if (flag)
+        root = createNode(i, child);
+}
+ 
+/* cópia sucessora para o valor a ser excluído */
+void copySuccessor(btree *myNode, int pos) {
+    btree *dummy;
+    dummy = myNode->link[pos];
+ 
+    for (; dummy->link[0] != NULL;)
+        dummy = dummy->link[0];
+    myNode->val[pos] = dummy->val[1];
+ 
+}
+ 
+/* remove o valor do nó fornecido e reorganiza os valores */
+void removeVal(btree *myNode, int pos) {
+    int i = pos + 1;
+    while (i <= myNode->count) {
+        myNode->val[i - 1] = myNode->val[i];
+        myNode->link[i - 1] = myNode->link[i];
+        i++;
+    }
+    myNode->count--;
+}
+ 
+/* muda o valor do pai para o filho certo */
+void doRightShift(btree *myNode, int pos) {
+    btree *x = myNode->link[pos];
+    int j = x->count;
+ 
+    while (j > 0) {
+        x->val[j + 1] = x->val[j];
+        x->link[j + 1] = x->link[j];
+    }
+    x->val[1] = myNode->val[pos];
+    x->link[1] = x->link[0];
+    x->count++;
+ 
+    x = myNode->link[pos - 1];
+    myNode->val[pos] = x->val[x->count];
+    myNode->link[pos] = x->link[x->count];
+    x->count--;
+    return;
+}
+ 
+/* muda o valor do pai para o filho esquerdo */
+void doLeftShift(btree *myNode, int pos) {
+    int j = 1;
+    btree *x = myNode->link[pos - 1];
+ 
+    x->count++;
+    x->val[x->count] = myNode->val[pos];
+    x->link[x->count] = myNode->link[pos]->link[0];
+ 
+    x = myNode->link[pos];
+    myNode->val[pos] = x->val[1];
+    x->link[0] = x->link[1];
+    x->count--;
+ 
+    while (j <= x->count) {
+        x->val[j] = x->val[j + 1];
+        x->link[j] = x->link[j + 1];
+        j++;
+    }
+    return;
+}
+ 
+/* nós de mesclagem */
+void mergeNodes(btree *myNode, int pos) {
+    int j = 1;
+    btree *x1 = myNode->link[pos], *x2 = myNode->link[pos - 1];
+ 
+    x2->count++;
+    x2->val[x2->count] = myNode->val[pos];
+    x2->link[x2->count] = myNode->link[0];
+ 
+    while (j <= x1->count) {
+        x2->count++;
+        x2->val[x2->count] = x1->val[j];
+        x2->link[x2->count] = x1->link[j];
+        j++;
+    }
+ 
+    j = pos;
+    while (j < myNode->count) {
+        myNode->val[j] = myNode->val[j + 1];
+        myNode->link[j] = myNode->link[j + 1];
+        j++;
+    }
+    myNode->count--;
+    free(x1);
+}
+ 
+/*  ajusta o nó dado */
+void adjustNode(btree *myNode, int pos) {
+    if (!pos) {
+        if (myNode->link[1]->count > MIN) {
+            doLeftShift(myNode, 1);
+        }
+        else {
+            mergeNodes(myNode, 1);
+        }
+    }
+    else {
+        if (myNode->count != pos) {
+            if (myNode->link[pos - 1]->count > MIN) {
+                doRightShift(myNode, pos);
             }
-
-            return true;
-
-        } else {            //Nó atual é interno
-
-            int pos = posDescida(atual->chaves, atual->n_chaves, chave);
-
-            bool status = buscaInsere(atual->ptr_node[pos], chave, promocao, chave_promovida, novo, ordem);
-
-            if(status == true && *promocao == true){
-                if(atual->n_chaves < ordem - 1){
-                    printf("oi\n");
-                    pos = ordenaNode(atual, *chave_promovida);
-                    atual->ptr_node[pos + 1] = *novo;
-                    *promocao = false;
-                } else {
-                    printf("me\n");
-                    Node *filho = criaNode(filho, ordem);
-                    divide(atual, *chave_promovida, *novo, filho, chave_promovida, ordem);
-                    *novo = filho;
+            else {
+                if (myNode->link[pos + 1]->count > MIN) {
+                    doLeftShift(myNode, pos + 1);
+                }
+                else {
+                    mergeNodes(myNode, pos);
                 }
             }
-
-            return status;
+        }
+        else {
+            if (myNode->link[pos - 1]->count > MIN)
+                doRightShift(myNode, pos);
+            else
+                mergeNodes(myNode, pos);
         }
     }
-
-
 }
-
-
-bool insere(Node **raiz, int chave, int ordem){
-
-    if(*raiz == NULL){ //Árvore vazia.
-
-        *raiz = criaNode(*raiz, ordem);
-        (*raiz)->chaves[0] = chave;
-        (*raiz)->n_chaves++;
-
-        return true;
-
-    } else {                //Árvore não vazia
-
-        bool status, promocao;
-        int chave_promovida;
-        Node *novo = criaNode(novo, ordem);
-
-        status = buscaInsere(*raiz, chave, &promocao, &chave_promovida, &novo, ordem);
-
-        if(promocao == true){
-            Node *nova_raiz = criaNode(nova_raiz, ordem);
-            nova_raiz->folha = false;
-
-            nova_raiz->chaves[0] = chave_promovida;
-            nova_raiz->n_chaves++;
-            nova_raiz->ptr_node[0] = *raiz;
-            nova_raiz->ptr_node[1] = novo;
-
-            *raiz = nova_raiz;
+ 
+/* excluir chave do nó */
+int delValFromNode(int val,btree *myNode) {
+    int pos, flag = 0;
+    if (myNode) {
+        if (val < myNode->val[1]) {
+            pos = 0;
+            flag = 0;
         }
-
-        return status;
+        else {
+            for (pos = myNode->count;
+                (val < myNode->val[pos] && pos > 1); pos--);
+            if (val == myNode->val[pos]) {
+                flag = 1;
+            }
+            else {
+                flag = 0;
+            }
+        }
+        if (flag) {
+            if (myNode->link[pos - 1]) {
+                copySuccessor(myNode, pos);
+                flag = delValFromNode(myNode->val[pos], myNode->link[pos]);
+                if (flag == 0) {
+                    printf("Dado nao esta presente em B-Tree\n");
+                }
+            }
+            else {
+                removeVal(myNode, pos);
+            }
+        }
+        else {
+            flag = delValFromNode(val, myNode->link[pos]);
+        }
+        if (myNode->link[pos]) {
+            if (myNode->link[pos]->count < MIN)
+                adjustNode(myNode, pos);
+        }
     }
+    return flag;
 }
-
-void printArvore(Node *no){
+ 
+/* excluir chave de B-tree */
+void deletion(int val,btree *myNode) {
+    btree *tmp;
+    if (!delValFromNode(val, myNode)) {
+        printf("Dado, valor nao esta presente em B-Tree\n");
+        return;
+    }
+    else {
+        if (myNode->count == 0) {
+            tmp = myNode;
+            myNode = myNode->link[0];
+            free(tmp);
+        }
+    }
+    root = myNode;
+    return;
+}
+ 
+/* buscar chave na B-Tree */
+int searching(int val, int *pos,btree *myNode) {
+    if (!myNode) {
+        return;
+    }
+    //adicionei
+ 	//fprintf(fileSaida, "%d ", myNode->val[2]);
+    //fimadicionei
+	if (val < myNode->val[1]) {
+        *pos = 0;
+    }
+    else {
+        for (*pos = myNode->count;
+            (val < myNode->val[*pos] && *pos > 1); (*pos)--);
+        if (val == myNode->val[*pos]) {
+            printf("Dado encontrado\n");
+            return 1;
+        }
+    }
+    searching(val, pos, myNode->link[*pos]);
+    return 0;
+}
+ 
+/* Imprimir a B-Tree */
+void traversal(btree *myNode) {
     int i;
-    bool mesmo_nivel = true;
-
-    printf("[");
-
-    for(i = 0; i < no->n_chaves - 1; i++){
-        printf("%d ", no->chaves[i]);
-    }
-    printf("%d]", no->chaves[(no->n_chaves) - 1]);
-
-    if(no->folha == false && mesmo_nivel == true){
-        printf("\n");
-        for(i = 0; i <= no->n_chaves; i++){
-            printArvore(no->ptr_node[i]);
+    if (myNode) {
+        for (i = 0; i < myNode->count; i++) {
+            traversal(myNode->link[i]);
+            printf("%d\n",myNode->val[i + 1]);
         }
+        traversal(myNode->link[i]);
     }
 }
-
-void destroi(Node *no){
-	if (no->folha == true){
-		free (no);
-		no = NULL;
-	} else {
-		int i; 									//contador para for
-		for(i = 0; i <= no->n_chaves; i++)
-			destroi(no->ptr_node[i]);
-		free(no);
-		no = NULL;
-	}
-}
-
-int main(){
-
-	char *fileEntrada, *fileSaida;
-
-	//Codigo para receber os parametros do terminal
-	/*fileEntradaPath = argv[1];
-	fileSaidaPath = argv[2];
-
-	fileEntrada = fopen("Entrada.txt", "r");
-    fileSaida = fopen("Saida.txt", "w");*/
-
-
+ 
+int main() {
+    int val, opt=0;
+    
+	//adicionei
+    //char *fileEntrada, *fileSaida;
 	fileEntrada = fopen("Entrada.txt", "r");
     fileSaida = fopen("Saida.txt", "w");
     int memoria, ordem, qtdChaves, i, chave, qtdInseridas, insertChaves;
 	int chavesInseridas[18];
 	int chavesBusca[4];
-	
-    fscanf(fileEntrada, "%d", &memoria);
+    
+	fscanf(fileEntrada, "%d", &memoria);
     fscanf(fileEntrada, "%d", &ordem);
     fscanf(fileEntrada, "%d", &qtdChaves);
-	
-	/*printf("Memoria %d\n",memoria);
-	printf("Ordem %d\n", ordem);
-    printf("Quantidade %d\n",qtdChaves);*/
-
+    
     for(i=0;i<qtdChaves;i++){
     	fscanf(fileEntrada, "%d", &chave);
     	chavesInseridas[i]=chave;
     	/*printf("Chave %d ,", chave);*/
 	}
-	printf("\n");
-	
 	fscanf(fileEntrada, "%d", &qtdInseridas);
-	printf("Quantidade de chaves a serem inseridas: %d\n", qtdInseridas);
-	printf("\n\n");
 	for(i=0;i<qtdInseridas;i++){
 		fscanf(fileEntrada, "%d", &insertChaves);
 		chavesBusca[i]=insertChaves;
 		/*printf("Chave: %d", insertChaves);*/	
 	}
-	
-    Node* raiz = NULL;
-
 	for(i=0;i<qtdChaves;i++){
-		insere(&raiz, chavesInseridas[i], ordem);
+    	insertion(chavesInseridas[i]);	
 	}
-    /*insere(&raiz, 4, ordem);
-
-    insere(&raiz, 7, ordem);
-
-    insere(&raiz, 20, ordem);
-
-    insere(&raiz, 15, ordem);
-
-    insere(&raiz, 6, ordem);
-
-    insere(&raiz, 4, ordem);
-
-    insere(&raiz, 18, ordem);
-
-    insere(&raiz, 5, ordem);
-
-    insere(&raiz, 70, ordem);
-
-    insere(&raiz, 50, ordem);
-
-    insere(&raiz, 9, ordem);
-
-    insere(&raiz, 35, ordem);
-
-    insere(&raiz, 25, ordem);*/
+	for(i=0;i<qtdInseridas;i++){
+		opt=3;
+		searching(chavesBusca[i], &opt, root);
+	}
+	//traversal(root);
+	//fimadicionei
     
-
-
-   // printArvore(raiz);
-    printf("\n");
-
-    destroi(raiz);
-
-    return 0;
+    /*while(opt!=5) {
+        printf("1. Inserir\t2. Deletar\n");
+        printf("3. Buscar\t4. Imprimir\n");
+        printf("5. Sair\nSelecione a opcao: ");
+        scanf("%d\n",&opt);
+        switch (opt) {
+	        case 1:
+	            printf("Informe a chave:");
+	            scanf("%d",&val);
+	            insertion(val);
+	            break;
+	        case 2:
+	            printf("Informe a chave que desaja deletar:");
+	            scanf("%d",&val);
+	            deletion(val, root);
+	            break;
+	        case 3:
+	            printf("Informe o elemento que deseja buscar:");
+	            scanf("%d",&val);
+	            int n;
+				n=searching(val, &opt, root);
+	            if(n==0){
+	            	printf("Dado nao encontrado!\n");
+				}
+	            break;
+	        case 4:
+	            traversal(root);
+	            break;
+	        case 5:
+	            exit(1);
+	            break;
+	    }
+	    printf("\n");
+    }*/
+	
+    
+ 
+    system("pause");
 }
