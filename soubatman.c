@@ -300,20 +300,20 @@ int searching(int val, int *pos,btree *myNode) {
     if (!myNode) {
         return;
     }
-    //adicionei
- 	//fprintf(fileSaida, "%d ", myNode->val[2]);
-    //fimadicionei
 	if (val < myNode->val[1]) {
         *pos = 0;
     }
     else {
-        for (*pos = myNode->count;
-            (val < myNode->val[*pos] && *pos > 1); (*pos)--);
+        for (*pos = myNode->count; (val < myNode->val[*pos] && *pos > 1); (*pos)--);
         if (val == myNode->val[*pos]) {
-            printf("Dado encontrado\n");
+            printf("\nDado encontrado\n");
             return 1;
         }
     }
+    //adicionei
+    printf("%d ",myNode->val[*pos]);	
+ 	fprintf(fileSaida, "%d ", myNode->val[*pos]);
+    //fimadicionei
     searching(val, pos, myNode->link[*pos]);
     return 0;
 }
@@ -348,7 +348,7 @@ int main() {
     for(i=0;i<qtdChaves;i++){
     	fscanf(fileEntrada, "%d", &chave);
     	chavesInseridas[i]=chave;
-    	/*printf("Chave %d ,", chave);*/
+    	//printf("Chave %d ", chave);
 	}
 	fscanf(fileEntrada, "%d", &qtdInseridas);
 	for(i=0;i<qtdInseridas;i++){
@@ -360,8 +360,9 @@ int main() {
     	insertion(chavesInseridas[i]);	
 	}
 	for(i=0;i<qtdInseridas;i++){
-		opt=3;
+		opt=0;
 		searching(chavesBusca[i], &opt, root);
+		fprintf(fileSaida, "\n");
 	}
 	//traversal(root);
 	//fimadicionei
