@@ -7,7 +7,90 @@
 
 FILE *fileEntrada, *fileSaida;
 
+//fila
+struct lista{
+	int n;
+	int cont;
+	struct lista* prox;
+};
+typedef struct lista Lista;
 
+struct fila{
+	Lista *ini;
+	Lista *fim;
+};
+typedef struct fila Fila;
+
+Fila* cria_f(){
+	Fila* f=(Fila*)malloc(sizeof(Fila));
+	f->ini = f->fim = NULL;
+	return f;
+}
+
+
+void insere_f(Fila* f,int v){
+	Lista* n=(Lista*)malloc(sizeof(Lista));
+	n->n=v;
+	n->prox=NULL;
+	if(f->fim!=NULL){
+		f->fim->prox=n;
+	}else{
+		f->ini=n;
+	}
+	f->fim=n;
+}
+
+
+int retira(Fila* f){
+	Lista* t;
+	int v;
+	if(f->ini==NULL){
+		printf("Lista vazia!");
+		exit(1);
+	}
+	t=f->ini;
+	v=t->n;
+	f->ini=t->prox;
+	if(f->ini==NULL){
+		f->fim==NULL;
+	}
+	free(t);
+	return v;
+}
+
+
+int buscar_f(Fila* f, int valor){
+	Lista *b;
+	if(f==NULL){
+		return 0;
+	}
+	for(b=f->ini;b!=NULL;b=b->prox){
+		if(valor==b->n){
+			return 1;
+		}
+	}
+	return 0;
+}
+
+void imprime(Fila* f){
+	Lista* q;
+	for(q=f->ini;q!=NULL;q=q->prox){
+		printf("-> %d",q->n);
+	}
+}
+
+
+void libera(Fila* f){
+	Lista* t=f->ini;
+	while(t!=NULL){
+		Lista* q=t->prox;
+		free(t);
+		t=q;
+	}
+	free(f);
+	printf("Fila liberada!\n");
+}
+//fimfila
 //arquivo
 FILE * abreArquivoLeitura(char * arquivo) {
     FILE * ptr_arquivo = NULL;
@@ -326,13 +409,14 @@ void deletion(int val,btree *myNode) {
 }
  
 /* buscar chave na B-Tree */
-int searching(int val, int *pos,btree *myNode) {
+int searching(Fila* f, int val, int *pos, btree *myNode) {
     if (myNode == NULL) {
         return 0;
     }
     
     for(*pos = 1;*pos <= myNode->count;(*pos)++){
     	fprintf(fileSaida,"%d ",myNode->val[*pos]);
+    	insere_f(f,myNode->val[*pos]);
 	}
     
 	if (val < myNode->val[1]) {
@@ -350,7 +434,7 @@ int searching(int val, int *pos,btree *myNode) {
     //printf("%d ",myNode->val[*pos]);	
  	//fprintf(fileSaida, "%d ", myNode->val[*pos]);
     //fimadicionei
-    searching(val, pos, myNode->link[*pos]);
+    searching(f, val, pos, myNode->link[*pos]);
     return 0;
 }
  
@@ -377,6 +461,8 @@ int main(int argc, char *argv[]) {
 	    char entrada[40] = "";
         char saida[40] = "";
 
+        Fila* f;
+        f=cria_f();
         strcat(entrada,argv[1]);
         strcat(saida,argv[2]);
 
@@ -411,11 +497,16 @@ int main(int argc, char *argv[]) {
 		}
 		for(i=0;i<qtdInseridas;i++){
 			opt=0;
-			searching(chavesBusca[i], &opt, root);
+			if(1==buscar_f(f,chavesBusca[i])){
+				fprintf(fileSaida, "hit");
+			}else{
+				searching(f,chavesBusca[i], &opt, root);	
+			}
 			fprintf(fileSaida, "\n");
 		}
 		printf("\n");
 		traversal(root);
+		imprime(f);
 		//fimadicionei
 	    
 	    /*while(opt!=5) {
