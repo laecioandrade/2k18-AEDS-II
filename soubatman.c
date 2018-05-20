@@ -6,7 +6,9 @@
 #define MIN 2
 
 FILE *fileEntrada, *fileSaida;
-int cont=0;
+int contP=0;
+int qtdAcessos=0;
+
 //fila
 struct lista{
 	int n;
@@ -29,11 +31,11 @@ Fila* cria_f(){
 }
 
 
-void insere_f(Fila* f,int v, int cont){
+void insere_f(Fila* f,int v){
 	Lista* n=(Lista*)malloc(sizeof(Lista));
 	n->n=v;
 	n->prox=NULL;
-    n->cont=cont;
+    n->cont=contP;
 	if(f->fim!=NULL){
 		f->fim->prox=n;
 	}else{
@@ -43,7 +45,7 @@ void insere_f(Fila* f,int v, int cont){
 }
 
 
-void retira(Fila* f, int cont){
+void retira(Fila* f){
 	Lista* t;
 	int v;
 	if(f->ini==NULL){
@@ -51,14 +53,15 @@ void retira(Fila* f, int cont){
 		exit(1);
 	}
     t=f->ini;
-    while(t->cont == cont){
+    while(t->cont == 1){
         v=t->n;
         f->ini=t->prox;
         if(f->ini==NULL){
             f->fim==NULL;
         }
+        t=f->ini;
     }
-    free(t);   
+     free(t);
 	//return v;
 }
 
@@ -76,6 +79,12 @@ int buscar_f(Fila* f, int valor){
 	return 0;
 }
 
+void reorganiza(Fila* f){
+	Lista* q;
+	for(q=f->ini;q!=NULL;q=q->prox){
+		q->cont=1;
+	}
+}
 
 void libera(Fila* f){
 	Lista* t=f->ini;
@@ -88,6 +97,7 @@ void libera(Fila* f){
 	printf("Fila liberada!\n");
 }
 //fimfila
+
 //arquivo
 FILE * abreArquivoLeitura(char * arquivo) {
     FILE * ptr_arquivo = NULL;
@@ -117,40 +127,40 @@ FILE * abreArquivoEscrita(char * arquivo) {
 }
 //fimarquivo
 
-
-typedef struct btreeNode btree;
-struct btreeNode {
+//arvore
+typedef struct NoArv Arv;
+struct NoArv {
     int val[MAX + 1], count;
-    btree *link[MAX + 1];
+    Arv *link[MAX + 1];
 };
-btree *root;
+Arv *raiz;
  
 /* criando novo nó */
-btree * createNode(int val, btree *child) {
-    btree * newNode = malloc(sizeof(btree));
-    newNode->val[1] = val;
-    newNode->count = 1;
-    newNode->link[0] = root;
-    newNode->link[1] = child;
-    return newNode;
+Arv * criarNo(int val, Arv *no) {
+    Arv * novo = malloc(sizeof(Arv));
+    novo->val[1] = val;
+    novo->count = 1;
+    novo->link[0] = raiz;
+    novo->link[1] = no;
+    return novo;
 }
  
 /* Coloca o valor na posição apropriada */
-void addValToNode(int val, int pos, btree *node, btree *child) {
-    int j = node->count;
+void adcValorNo(int val, int pos, Arv *no, Arv *novo) {
+    int j = no->count;
     while (j > pos) {
-        node->val[j + 1] = node->val[j];
-        node->link[j + 1] = node->link[j];
+        no->val[j + 1] = no->val[j];
+        no->link[j + 1] = no->link[j];
         j--;
     }
-    node->val[j + 1] = val;
-    node->link[j + 1] = child;
-    node->count++;
+    no->val[j + 1] = val;
+    no->link[j + 1] = novo;
+    no->count++;
     
 }
  
 /* dividir o nó */
-void splitNode(int val, int *pval, int pos, btree *node,btree *child, btree **newNode) {
+void dividirNo(int val, int *pval, int pos, Arv *no,Arv *novo, Arv **novoNo) {
     int median, j;
  
     if (pos > MIN)
@@ -158,29 +168,29 @@ void splitNode(int val, int *pval, int pos, btree *node,btree *child, btree **ne
     else
         median = MIN;
  
-    *newNode = malloc(sizeof(btree));
+    *novoNo = malloc(sizeof(Arv));
     j = median + 1;
     while (j <= MAX) {
-        (*newNode)->val[j - median] = node->val[j];
-        (*newNode)->link[j - median] = node->link[j];
+        (*novoNo)->val[j - median] = no->val[j];
+        (*novoNo)->link[j - median] = no->link[j];
         j++;
     }
-    node->count = median;
-    (*newNode)->count = MAX - median;
+    no->count = median;
+    (*novoNo)->count = MAX - median;
  
     if (pos <= MIN) {
-        addValToNode(val, pos, node, child);
+        adcValorNo(val, pos, no, novo);
     }
     else {
-        addValToNode(val, pos - median, *newNode, child);
+        adcValorNo(val, pos - median, *novoNo, novo);
     }
-    *pval = node->val[node->count];
-    (*newNode)->link[0] = node->link[node->count];
-    node->count--;
+    *pval = no->val[no->count];
+    (*novoNo)->link[0] = no->link[no->count];
+    no->count--;
 }
  
 /* define o valor chave no nó */
-int setValueInNode(int val, int *pval,btree *node, btree **child) {
+int defineChaveNo(int val, int *pval,Arv *node, Arv **child) {
  
     int pos;
     if (!node) {
@@ -201,12 +211,12 @@ int setValueInNode(int val, int *pval,btree *node, btree **child) {
             return 0;
         }
     }
-    if (setValueInNode(val, pval, node->link[pos], child)) {
+    if (defineChaveNo(val, pval, node->link[pos], child)) {
         if (node->count < MAX) {
-            addValToNode(*pval, pos, node, *child);
+            adcValorNo(*pval, pos, node, *child);
         }
         else {
-            splitNode(*pval, pval, pos, node, *child, child);
+            dividirNo(*pval, pval, pos, node, *child, child);
             return 1;
         }
     }
@@ -214,31 +224,33 @@ int setValueInNode(int val, int *pval,btree *node, btree **child) {
 }
  
 /* inserir chave em B-Tree */
-void insertion(int val) {
+void inserir(int val) {
     int flag, i;
-    btree *child;
+    Arv *child;
  
-    flag = setValueInNode(val, &i, root, &child);
+    flag = defineChaveNo(val, &i, raiz, &child);
     if (flag)
-        root = createNode(i, child);
+        raiz = criarNo(i, child);
 }
 
  
 /* buscar chave na B-Tree */
-int searching(Fila* f, int val, int *pos, btree *myNode,int cont) {
+int buscarChave(Fila* f, int val, int *pos, Arv *myNode) {
     if (myNode == NULL) {
         return 0;
     }
-    cont++;
+    
+    qtdAcessos=qtdAcessos+1;
+    if(contP == 2){
+        //int i;
+        retira(f);
+        reorganiza(f); 
+        contP--;
+    }
+    contP++;
     for(*pos = 1;*pos <= myNode->count;(*pos)++){
     	fprintf(fileSaida,"%d ",myNode->val[*pos]);
-        if(cont == 2){
-            int i;
-            retira(f,cont);    
-            cont=0;
-        }else{
-          insere_f(f,myNode->val[*pos],cont);
-        }
+        insere_f(f,myNode->val[*pos]);
 	}
     
 	if (val < myNode->val[1]) {
@@ -252,14 +264,13 @@ int searching(Fila* f, int val, int *pos, btree *myNode,int cont) {
             return 1;
         }
     }
-
-    searching(f, val, pos, myNode->link[*pos],cont);
+    buscarChave(f, val, pos, myNode->link[*pos]);
     return 0;
 }
- 
+//fimarvore
  
 int main(int argc, char *argv[]) {
-    int val, opt=0, qtdAcessos=0; 
+    int val, opt=0; 
 
     if(argc == 3){
 	    int memoria, ordem, qtdChaves, i, chave, qtdInseridas, insertChaves;
@@ -300,20 +311,18 @@ int main(int argc, char *argv[]) {
 		}
 		
 		for(i=0;i<qtdChaves;i++){
-	    	insertion(chavesInseridas[i]);
+	    	inserir(chavesInseridas[i]);
 		}
 		for(i=0;i<qtdInseridas;i++){
 			if(1==buscar_f(f,chavesBusca[i])){
 				fprintf(fileSaida, "hit");
 			}else{
-                qtdAcessos=qtdAcessos+3;
-				searching(f,chavesBusca[i], &opt,root, cont);	
+				buscarChave(f,chavesBusca[i], &opt,raiz);	
 			}
 			fprintf(fileSaida, "\n");
 		}
-        fprintf(fileSaida, "%d ", qtdAcessos);
+        fprintf(fileSaida, "%d", qtdAcessos);
 		printf("\n");
-	    
  	}
     system("pause");
 }
