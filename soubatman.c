@@ -6,7 +6,7 @@
 #define MIN 2
 
 FILE *fileEntrada, *fileSaida;
-
+int cont=0;
 //fila
 struct lista{
 	int n;
@@ -18,6 +18,7 @@ typedef struct lista Lista;
 struct fila{
 	Lista *ini;
 	Lista *fim;
+	int numpg;
 };
 typedef struct fila Fila;
 
@@ -28,10 +29,11 @@ Fila* cria_f(){
 }
 
 
-void insere_f(Fila* f,int v){
+void insere_f(Fila* f,int v, int cont){
 	Lista* n=(Lista*)malloc(sizeof(Lista));
 	n->n=v;
 	n->prox=NULL;
+    n->cont=cont;
 	if(f->fim!=NULL){
 		f->fim->prox=n;
 	}else{
@@ -41,21 +43,23 @@ void insere_f(Fila* f,int v){
 }
 
 
-int retira(Fila* f){
+void retira(Fila* f, int cont){
 	Lista* t;
 	int v;
 	if(f->ini==NULL){
 		printf("Lista vazia!");
 		exit(1);
 	}
-	t=f->ini;
-	v=t->n;
-	f->ini=t->prox;
-	if(f->ini==NULL){
-		f->fim==NULL;
-	}
-	free(t);
-	return v;
+    t=f->ini;
+    while(t->cont == cont){
+        v=t->n;
+        f->ini=t->prox;
+        if(f->ini==NULL){
+            f->fim==NULL;
+        }
+    }
+    free(t);   
+	//return v;
 }
 
 
@@ -409,14 +413,20 @@ void deletion(int val,btree *myNode) {
 }
  
 /* buscar chave na B-Tree */
-int searching(Fila* f, int val, int *pos, btree *myNode) {
+int searching(Fila* f, int val, int *pos, btree *myNode,int cont) {
     if (myNode == NULL) {
         return 0;
     }
-    
+    cont++;
     for(*pos = 1;*pos <= myNode->count;(*pos)++){
     	fprintf(fileSaida,"%d ",myNode->val[*pos]);
-    	insere_f(f,myNode->val[*pos]);
+        if(cont == 2){
+            int i;
+            retira(f,cont);    
+            cont=0;
+        }else{
+          insere_f(f,myNode->val[*pos],cont);
+        }
 	}
     
 	if (val < myNode->val[1]) {
@@ -434,7 +444,7 @@ int searching(Fila* f, int val, int *pos, btree *myNode) {
     //printf("%d ",myNode->val[*pos]);	
  	//fprintf(fileSaida, "%d ", myNode->val[*pos]);
     //fimadicionei
-    searching(f, val, pos, myNode->link[*pos]);
+    searching(f, val, pos, myNode->link[*pos],cont);
     return 0;
 }
  
@@ -451,7 +461,7 @@ void traversal(btree *myNode) {
 }
  
 int main(int argc, char *argv[]) {
-    int val, opt=0;
+    int val, opt=0, qtdAcessos=0; 
     
 	//adicionei
     //char *fileEntrada, *fileSaida;
@@ -473,6 +483,8 @@ int main(int argc, char *argv[]) {
 	    fscanf(fileEntrada, "%d", &ordem);
 	    fscanf(fileEntrada, "%d", &qtdChaves);
 	    
+	    int paginas = (memoria/(4*(2*ordem) + 4 * (2 * ordem + 1)));
+	    f->numpg=paginas;
 	    
 	    int chavesInseridas[qtdChaves];
 	    
@@ -496,16 +508,17 @@ int main(int argc, char *argv[]) {
 	    	//fprintf(fileSaida,"%d ",chavesInseridas[i]);
 		}
 		for(i=0;i<qtdInseridas;i++){
-			opt=0;
 			if(1==buscar_f(f,chavesBusca[i])){
 				fprintf(fileSaida, "hit");
 			}else{
-				searching(f,chavesBusca[i], &opt, root);	
+                qtdAcessos=qtdAcessos+3;
+				searching(f,chavesBusca[i], &opt,root, cont);	
 			}
 			fprintf(fileSaida, "\n");
 		}
+        fprintf(fileSaida, "%d ", qtdAcessos);
 		printf("\n");
-		traversal(root);
+		//traversal(root);
 		imprime(f);
 		//fimadicionei
 	    
