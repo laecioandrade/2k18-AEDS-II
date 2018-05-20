@@ -1,10 +1,42 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define MAX 4
 #define MIN 2
 
-char *fileEntrada, *fileSaida;
+FILE *fileEntrada, *fileSaida;
+
+
+//arquivo
+FILE * abreArquivoLeitura(char * arquivo) {
+    FILE * ptr_arquivo = NULL;
+    if ((ptr_arquivo = fopen(arquivo, "r")) == NULL){
+        printf("Erro ao abrir arquivo para leitura.\n");
+        exit(1);
+    }
+    else {
+        //printf("Arquivo aberto com sucesso!\n");
+        return ptr_arquivo;
+    }
+}
+
+
+// Funções de escrita
+
+FILE * abreArquivoEscrita(char * arquivo) {
+    FILE * ptr_arquivo = NULL;
+    if ((ptr_arquivo = fopen(arquivo, "w")) == NULL){
+        printf("Erro ao abrir arquivo para escrita.\n");
+        exit(1);
+    }
+    else {
+        //printf("Arquivo aberto com sucesso!\n");
+        return ptr_arquivo;
+    }
+}
+//fimarquivo
+
 
 typedef struct btreeNode btree;
 struct btreeNode {
@@ -295,8 +327,8 @@ void deletion(int val,btree *myNode) {
  
 /* buscar chave na B-Tree */
 int searching(int val, int *pos,btree *myNode) {
-    if (!myNode) {
-        return;
+    if (myNode == NULL) {
+        return 0;
     }
     
     for(*pos = 1;*pos <= myNode->count;(*pos)++){
@@ -334,87 +366,94 @@ void traversal(btree *myNode) {
     }
 }
  
-int main() {
+int main(int argc, char *argv[]) {
     int val, opt=0;
     
 	//adicionei
     //char *fileEntrada, *fileSaida;
-	fileEntrada = fopen("Entrada.txt", "r");
-    fileSaida = fopen("Saida.txt", "w");
-    int memoria, ordem, qtdChaves, i, chave, qtdInseridas, insertChaves;
-	
-    
-	fscanf(fileEntrada, "%d", &memoria);
-    fscanf(fileEntrada, "%d", &ordem);
-    fscanf(fileEntrada, "%d", &qtdChaves);
-    
-    
-    int chavesInseridas[qtdChaves];
-    
-    for(i=0;i<qtdChaves;i++){
-    	fscanf(fileEntrada, "%d", &chave);
-    	chavesInseridas[i]=chave;
-    	//printf("Chave %d ", chave);
-	}
-	
-	fscanf(fileEntrada, "%d", &qtdInseridas);
-	int chavesBusca[qtdInseridas];
-	
-	for(i=0;i<qtdInseridas;i++){
-		fscanf(fileEntrada, "%d", &insertChaves);
-		chavesBusca[i]=insertChaves;
-		/*printf("Chave: %d", insertChaves);*/	
-	}
-	
-	for(i=0;i<qtdChaves;i++){
-    	insertion(chavesInseridas[i]);
-    	//fprintf(fileSaida,"%d ",chavesInseridas[i]);
-	}
-	for(i=0;i<qtdInseridas;i++){
-		opt=0;
-		searching(chavesBusca[i], &opt, root);
-		fprintf(fileSaida, "\n");
-	}
-	printf("\n");
-	traversal(root);
-	//fimadicionei
-    
-    /*while(opt!=5) {
-        printf("1. Inserir\t2. Deletar\n");
-        printf("3. Buscar\t4. Imprimir\n");
-        printf("5. Sair\nSelecione a opcao: ");
-        scanf("%d\n",&opt);
-        switch (opt) {
-	        case 1:
-	            printf("Informe a chave:");
-	            scanf("%d",&val);
-	            insertion(val);
-	            break;
-	        case 2:
-	            printf("Informe a chave que desaja deletar:");
-	            scanf("%d",&val);
-	            deletion(val, root);
-	            break;
-	        case 3:
-	            printf("Informe o elemento que deseja buscar:");
-	            scanf("%d",&val);
-	            int n;
-				n=searching(val, &opt, root);
-	            if(n==0){
-	            	printf("Dado nao encontrado!\n");
-				}
-	            break;
-	        case 4:
-	            traversal(root);
-	            break;
-	        case 5:
-	            exit(1);
-	            break;
-	    }
-	    printf("\n");
-    }*/
-	
-    
- 
+    if(argc == 3){
+	    int memoria, ordem, qtdChaves, i, chave, qtdInseridas, insertChaves;
+		
+	    char entrada[40] = "";
+        char saida[40] = "";
+
+        strcat(entrada,argv[1]);
+        strcat(saida,argv[2]);
+
+        fileEntrada = abreArquivoLeitura(entrada);
+        fileSaida = abreArquivoEscrita(saida);
+
+		fscanf(fileEntrada, "%d", &memoria);
+	    fscanf(fileEntrada, "%d", &ordem);
+	    fscanf(fileEntrada, "%d", &qtdChaves);
+	    
+	    
+	    int chavesInseridas[qtdChaves];
+	    
+	    for(i=0;i<qtdChaves;i++){
+	    	fscanf(fileEntrada, "%d", &chave);
+	    	chavesInseridas[i]=chave;
+	    	//printf("Chave %d ", chave);
+		}
+		
+		fscanf(fileEntrada, "%d", &qtdInseridas);
+		int chavesBusca[qtdInseridas];
+		
+		for(i=0;i<qtdInseridas;i++){
+			fscanf(fileEntrada, "%d", &insertChaves);
+			chavesBusca[i]=insertChaves;
+			/*printf("Chave: %d", insertChaves);*/	
+		}
+		
+		for(i=0;i<qtdChaves;i++){
+	    	insertion(chavesInseridas[i]);
+	    	//fprintf(fileSaida,"%d ",chavesInseridas[i]);
+		}
+		for(i=0;i<qtdInseridas;i++){
+			opt=0;
+			searching(chavesBusca[i], &opt, root);
+			fprintf(fileSaida, "\n");
+		}
+		printf("\n");
+		traversal(root);
+		//fimadicionei
+	    
+	    /*while(opt!=5) {
+	        printf("1. Inserir\t2. Deletar\n");
+	        printf("3. Buscar\t4. Imprimir\n");
+	        printf("5. Sair\nSelecione a opcao: ");
+	        scanf("%d\n",&opt);
+	        switch (opt) {
+		        case 1:
+		            printf("Informe a chave:");
+		            scanf("%d",&val);
+		            insertion(val);
+		            break;
+		        case 2:
+		            printf("Informe a chave que desaja deletar:");
+		            scanf("%d",&val);
+		            deletion(val, root);
+		            break;
+		        case 3:
+		            printf("Informe o elemento que deseja buscar:");
+		            scanf("%d",&val);
+		            int n;
+					n=searching(val, &opt, root);
+		            if(n==0){
+		            	printf("Dado nao encontrado!\n");
+					}
+		            break;
+		        case 4:
+		            traversal(root);
+		            break;
+		        case 5:
+		            exit(1);
+		            break;
+		    }
+		    printf("\n");
+	    }*/
+		
+	    
+ 	}
     system("pause");
 }
