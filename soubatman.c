@@ -3,7 +3,6 @@
 
 #define MAX 4
 #define MIN 2
-//using namespace std;
 
 char *fileEntrada, *fileSaida;
 
@@ -12,7 +11,6 @@ struct btreeNode {
     int val[MAX + 1], count;
     btree *link[MAX + 1];
 };
- 
 btree *root;
  
 /* criando novo nó */
@@ -300,19 +298,25 @@ int searching(int val, int *pos,btree *myNode) {
     if (!myNode) {
         return;
     }
+    
+    for(*pos = 1;*pos <= myNode->count;(*pos)++){
+    	fprintf(fileSaida,"%d ",myNode->val[*pos]);
+	}
+    
 	if (val < myNode->val[1]) {
         *pos = 0;
     }
-    else {
+	else {
         for (*pos = myNode->count; (val < myNode->val[*pos] && *pos > 1); (*pos)--);
-        if (val == myNode->val[*pos]) {
-            printf("\nDado encontrado\n");
+        //fprintf(fileSaida, "%d ",myNode->val[*pos]);
+		if (val == myNode->val[*pos]) {
+            //printf("\nDado encontrado\n");
             return 1;
         }
     }
     //adicionei
-    printf("%d ",myNode->val[*pos]);	
- 	fprintf(fileSaida, "%d ", myNode->val[*pos]);
+    //printf("%d ",myNode->val[*pos]);	
+ 	//fprintf(fileSaida, "%d ", myNode->val[*pos]);
     //fimadicionei
     searching(val, pos, myNode->link[*pos]);
     return 0;
@@ -323,8 +327,8 @@ void traversal(btree *myNode) {
     int i;
     if (myNode) {
         for (i = 0; i < myNode->count; i++) {
-            traversal(myNode->link[i]);
             printf("%d\n",myNode->val[i + 1]);
+			traversal(myNode->link[i]);
         }
         traversal(myNode->link[i]);
     }
@@ -338,33 +342,41 @@ int main() {
 	fileEntrada = fopen("Entrada.txt", "r");
     fileSaida = fopen("Saida.txt", "w");
     int memoria, ordem, qtdChaves, i, chave, qtdInseridas, insertChaves;
-	int chavesInseridas[18];
-	int chavesBusca[4];
+	
     
 	fscanf(fileEntrada, "%d", &memoria);
     fscanf(fileEntrada, "%d", &ordem);
     fscanf(fileEntrada, "%d", &qtdChaves);
+    
+    
+    int chavesInseridas[qtdChaves];
     
     for(i=0;i<qtdChaves;i++){
     	fscanf(fileEntrada, "%d", &chave);
     	chavesInseridas[i]=chave;
     	//printf("Chave %d ", chave);
 	}
+	
 	fscanf(fileEntrada, "%d", &qtdInseridas);
+	int chavesBusca[qtdInseridas];
+	
 	for(i=0;i<qtdInseridas;i++){
 		fscanf(fileEntrada, "%d", &insertChaves);
 		chavesBusca[i]=insertChaves;
 		/*printf("Chave: %d", insertChaves);*/	
 	}
+	
 	for(i=0;i<qtdChaves;i++){
-    	insertion(chavesInseridas[i]);	
+    	insertion(chavesInseridas[i]);
+    	//fprintf(fileSaida,"%d ",chavesInseridas[i]);
 	}
 	for(i=0;i<qtdInseridas;i++){
 		opt=0;
 		searching(chavesBusca[i], &opt, root);
 		fprintf(fileSaida, "\n");
 	}
-	//traversal(root);
+	printf("\n");
+	traversal(root);
 	//fimadicionei
     
     /*while(opt!=5) {
