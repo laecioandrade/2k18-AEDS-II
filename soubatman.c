@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX 4
-#define MIN 2
+//#define MAX 4
+//#define MIN 2
 
 FILE *fileEntrada, *fileSaida;
 int contP=0;
@@ -46,6 +46,7 @@ void insere_f(Fila* f,int v){
 
 
 void retira(Fila* f){
+	
 	Lista* t;
 	int v;
 	if(f->ini==NULL){
@@ -61,7 +62,7 @@ void retira(Fila* f){
         }
         t=f->ini;
     }
-     free(t);
+    //free(t);
 	//return v;
 }
 
@@ -130,14 +131,16 @@ FILE * abreArquivoEscrita(char * arquivo) {
 //arvore
 typedef struct NoArv Arv;
 struct NoArv {
-    int val[MAX + 1], count;
-    Arv *link[MAX + 1];
+    int *val, count;
+    Arv **link;
 };
 Arv *raiz;
  
 /* criando novo nó */
-Arv * criarNo(int val, Arv *no) {
+Arv * criarNo(int val, Arv *no, int ordem) {
     Arv * novo = malloc(sizeof(Arv));
+    novo->val = (int*)malloc((ordem+1)*sizeof(int));
+    novo->link = (Arv**)malloc((ordem+1)*sizeof(Arv*));
     novo->val[1] = val;
     novo->count = 1;
     novo->link[0] = raiz;
@@ -160,25 +163,27 @@ void adcValorNo(int val, int pos, Arv *no, Arv *novo) {
 }
  
 /* dividir o nó */
-void dividirNo(int val, int *pval, int pos, Arv *no,Arv *novo, Arv **novoNo) {
+void dividirNo(int val, int *pval, int pos, Arv *no,Arv *novo, Arv **novoNo, int ordem) {
     int median, j;
  
-    if (pos > MIN)
-        median = MIN + 1;
+    if (pos > (ordem/2))
+        median = (ordem/2) + 1;
     else
-        median = MIN;
+        median = (ordem/2);
  
     *novoNo = malloc(sizeof(Arv));
+    (*novoNo)->val = (int*)calloc(ordem+1,sizeof(int));
+    (*novoNo)->link = (Arv**)calloc(ordem+1,sizeof(Arv*));
     j = median + 1;
-    while (j <= MAX) {
+    while (j <= ordem) {
         (*novoNo)->val[j - median] = no->val[j];
         (*novoNo)->link[j - median] = no->link[j];
         j++;
     }
     no->count = median;
-    (*novoNo)->count = MAX - median;
+    (*novoNo)->count = ordem - median;
  
-    if (pos <= MIN) {
+    if (pos <= (ordem/2)) {
         adcValorNo(val, pos, no, novo);
     }
     else {
@@ -190,7 +195,7 @@ void dividirNo(int val, int *pval, int pos, Arv *no,Arv *novo, Arv **novoNo) {
 }
  
 /* define o valor chave no nó */
-int defineChaveNo(int val, int *pval,Arv *node, Arv **child) {
+int defineChaveNo(int val, int *pval,Arv *node, Arv **child, int ordem) {
  
     int pos;
     if (!node) {
@@ -211,12 +216,12 @@ int defineChaveNo(int val, int *pval,Arv *node, Arv **child) {
             return 0;
         }
     }
-    if (defineChaveNo(val, pval, node->link[pos], child)) {
-        if (node->count < MAX) {
+    if (defineChaveNo(val, pval, node->link[pos], child, ordem)) {
+        if (node->count < ordem) {
             adcValorNo(*pval, pos, node, *child);
         }
         else {
-            dividirNo(*pval, pval, pos, node, *child, child);
+            dividirNo(*pval, pval, pos, node, *child, child, ordem);
             return 1;
         }
     }
@@ -224,24 +229,24 @@ int defineChaveNo(int val, int *pval,Arv *node, Arv **child) {
 }
  
 /* inserir chave em B-Tree */
-void inserir(int val) {
+void inserir(int val, int ordem) {
     int flag, i;
     Arv *child;
  
-    flag = defineChaveNo(val, &i, raiz, &child);
+    flag = defineChaveNo(val, &i, raiz, &child, ordem);
     if (flag)
-        raiz = criarNo(i, child);
+        raiz = criarNo(i, child, ordem);
 }
 
  
 /* buscar chave na B-Tree */
-int buscarChave(Fila* f, int val, int *pos, Arv *myNode) {
+int buscarChave(Fila* f, int val, int *pos, Arv *myNode, int paginas) {
     if (myNode == NULL) {
         return 0;
     }
-    
-    qtdAcessos=qtdAcessos+1;
-    if(contP == 2){
+
+    qtdAcessos++;
+    if(contP == paginas){
         //int i;
         retira(f);
         reorganiza(f); 
@@ -252,19 +257,17 @@ int buscarChave(Fila* f, int val, int *pos, Arv *myNode) {
     	fprintf(fileSaida,"%d ",myNode->val[*pos]);
         insere_f(f,myNode->val[*pos]);
 	}
-    
 	if (val < myNode->val[1]) {
-        *pos = 0;
-    }
-	else {
-        for (*pos = myNode->count; (val < myNode->val[*pos] && *pos > 1); (*pos)--);
+        (*pos) = 0;
+    }else {
+        for (*pos = myNode->count; (val < myNode->val[*pos] && (*pos) > 1); (*pos)--);
 
 		if (val == myNode->val[*pos]) {
 
             return 1;
         }
     }
-    buscarChave(f, val, pos, myNode->link[*pos]);
+    buscarChave(f, val, pos, myNode->link[*pos],paginas);
     return 0;
 }
 //fimarvore
@@ -289,12 +292,12 @@ int main(int argc, char *argv[]) {
 		fscanf(fileEntrada, "%d", &memoria);
 	    fscanf(fileEntrada, "%d", &ordem);
 	    fscanf(fileEntrada, "%d", &qtdChaves);
-	    
+	   	
 	    int paginas = (memoria/(4*(2*ordem) + 4 * (2 * ordem + 1)));
 	    f->numpg=paginas;
 	    
 	    int chavesInseridas[qtdChaves];
-	    
+
 	    for(i=0;i<qtdChaves;i++){
 	    	fscanf(fileEntrada, "%d", &chave);
 	    	chavesInseridas[i]=chave;
@@ -309,20 +312,22 @@ int main(int argc, char *argv[]) {
 			chavesBusca[i]=insertChaves;
 
 		}
-		
+		 ordem=ordem*2;
 		for(i=0;i<qtdChaves;i++){
-	    	inserir(chavesInseridas[i]);
+	    	inserir(chavesInseridas[i],ordem);
 		}
+		
 		for(i=0;i<qtdInseridas;i++){
 			if(1==buscar_f(f,chavesBusca[i])){
 				fprintf(fileSaida, "hit");
 			}else{
-				buscarChave(f,chavesBusca[i], &opt,raiz);	
+				buscarChave(f,chavesBusca[i], &opt,raiz, paginas);	
 			}
 			fprintf(fileSaida, "\n");
 		}
+
         fprintf(fileSaida, "%d", qtdAcessos);
 		printf("\n");
  	}
-    system("pause");
+    //system("pause");
 }
